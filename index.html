@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de despachos · La Quinta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F2E9; --panel:#FFFEFA; --ink:#202B24; --muted:#68766C; --line:#D7DED3;
+  --brand:#234B37; --brand-ink:#FFFFFF; --focus:#397451;
+  --ok-bg:#E3F4EA; --ok-ink:#0E5A33; --ok-line:#7CC59B;
+  --warn-bg:#FCF0D3; --warn-ink:#6B4300; --warn-line:#E5B547;
+  --bad-bg:#FBE4E2; --bad-ink:#8A1C16; --bad-line:#E58A84;
+  --off-bg:#E7E9EC; --off-ink:#3C4650; --off-line:#A8B0B9;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111A14; --panel:#1C2920; --ink:#E8EFE8; --muted:#A7B6A9; --line:#35473A;
+    --brand:#8DBB99; --brand-ink:#142019; --focus:#A5D4B0;
+    --ok-bg:#12301F; --ok-ink:#9BE0B8; --ok-line:#2E7A50;
+    --warn-bg:#3A2C0A; --warn-ink:#F1CE7A; --warn-line:#8A6516;
+    --bad-bg:#3C1714; --bad-ink:#F4A9A3; --bad-line:#933A33;
+    --off-bg:#222B35; --off-ink:#C5CED7; --off-line:#4B5967;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:1rem}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:16px;line-height:1.5}
+.num{font-variant-numeric:tabular-nums}
+header.top{background:var(--brand);color:var(--brand-ink)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:22px}
+.top h1{margin:0;font-size:1.5rem;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.top p{margin:2px 0 0;font-size:.9rem;opacity:.8}
+nav[role="tablist"]{display:flex;gap:4px}
+nav button{font:inherit;font-weight:500;border:0;background:transparent;color:inherit;opacity:.75;padding:10px 18px;border-radius:8px 8px 0 0;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--bg);color:var(--ink);opacity:1;font-weight:700}
+nav button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+main{padding:24px 0 56px}
+.view[hidden]{display:none}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:24px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px}
+.card h2{margin:0 0 4px;font-size:1.15rem;font-weight:700}
+.hint{color:var(--muted);font-size:.9rem;margin:0 0 16px}
+.cases{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.cases span{width:100%;font-size:.85rem;color:var(--muted)}
+.chip{font:inherit;font-size:.85rem;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip:hover{border-color:var(--brand)}
+form{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.f{display:flex;flex-direction:column;gap:5px}
+.f.full{grid-column:1/-1}
+@media (max-width:520px){form{grid-template-columns:1fr}}
+label{font-weight:500;font-size:.92rem}
+input,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px}
+input:hover,select:hover{border-color:var(--off-line)}
+input[aria-invalid="true"]{border-color:var(--bad-line);background:var(--bad-bg)}
+.err{color:var(--bad-ink);font-size:.85rem;min-height:1.1em}
+.actions{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:4px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:12px 22px;background:var(--brand);color:var(--brand-ink);cursor:pointer;min-height:44px}
+.btn[disabled]{opacity:.55;cursor:progress}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+.status-line{font-size:.9rem;color:var(--muted)}
+.slip{border:2px solid var(--off-line);border-radius:10px;background:var(--off-bg);color:var(--off-ink);padding:22px;min-height:260px;position:sticky;top:16px}
+@media (max-width:860px){.slip{position:static}}
+.slip.aprobado{border-color:var(--ok-line);background:var(--ok-bg);color:var(--ok-ink)}
+.slip.alerta{border-color:var(--warn-line);background:var(--warn-bg);color:var(--warn-ink)}
+.slip.rechazado{border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad-ink)}
+.slip.respaldo,.slip.desconocido{border-color:var(--off-line);background:var(--off-bg);color:var(--off-ink)}
+.slip h2{margin:0;font-size:1.9rem;font-weight:800;line-height:1.1;letter-spacing:-.015em}
+.slip .msg{margin:10px 0 0;font-size:1.02rem}
+.slip dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:18px 0 0;padding-top:14px;border-top:1px solid currentColor;border-top-color:color-mix(in srgb,currentColor 30%,transparent);font-size:.93rem}
+.slip dt{opacity:.8}
+.slip dd{margin:0;font-weight:700;text-align:right;overflow-wrap:anywhere}
+.slip details{margin-top:14px;font-size:.85rem}
+.slip summary{cursor:pointer;font-weight:500}
+.slip pre{margin:8px 0 0;padding:10px;border-radius:6px;background:rgba(0,0,0,.07);overflow-x:auto;white-space:pre-wrap;word-break:break-word;font-size:.8rem}
+.slip .empty{margin:0;font-size:1rem}
+.slip.loading h2{opacity:.6}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}
+@media (max-width:600px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:1.6rem;font-weight:800;line-height:1.2}
+.stat span{color:var(--muted);font-size:.88rem}
+.tools{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:14px}
+.tools .f{min-width:170px;flex:1}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:.9rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:700;background:var(--bg);position:sticky;top:0;white-space:nowrap}
+td.r,th.r{text-align:right}
+tr:last-child td{border-bottom:0}
+.badge{display:inline-block;font-size:.8rem;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid;white-space:nowrap}
+.badge.aprobado{background:var(--ok-bg);color:var(--ok-ink);border-color:var(--ok-line)}
+.badge.alerta{background:var(--warn-bg);color:var(--warn-ink);border-color:var(--warn-line)}
+.badge.rechazado{background:var(--bad-bg);color:var(--bad-ink);border-color:var(--bad-line)}
+.badge.respaldo,.badge.desconocido{background:var(--off-bg);color:var(--off-ink);border-color:var(--off-line)}
+.notice{border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:.93rem}
+.notice code{font-family:ui-monospace,Consolas,monospace}
+.empty-row{padding:28px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){
+  .slip{transition:background-color .2s,border-color .2s}
+}
+
+/* Pulido visual */
+body{background:linear-gradient(180deg,color-mix(in srgb,var(--brand) 7%,var(--bg)) 0, var(--bg) 260px)}
+header.top{background:linear-gradient(120deg,#1B3B2B 0%,#326348 100%);box-shadow:0 4px 18px rgba(25,55,38,.16)}
+.top .wrap{align-items:center;padding-top:18px}
+.top h1{letter-spacing:-.035em}
+.top p{opacity:.82}
+nav[role="tablist"]{gap:6px;align-self:flex-end}
+nav button{transition:background-color .18s,color .18s,opacity .18s}
+nav button:hover{opacity:1;background:rgba(255,255,255,.12)}
+nav button[aria-selected="true"]{box-shadow:0 -2px 0 var(--focus) inset}
+main{padding-top:30px}
+.card,.stat{box-shadow:0 8px 24px rgba(22,32,43,.055)}
+.card{padding:26px}
+.card h2{font-size:1.25rem;letter-spacing:-.02em}
+.hint{line-height:1.55}
+.cases{padding:14px;background:color-mix(in srgb,var(--bg) 58%,var(--panel));border:1px solid var(--line);border-radius:10px}
+.cases span{font-weight:700;color:var(--ink)}
+.chip{transition:transform .16s,border-color .16s,background-color .16s}
+.chip:hover{background:var(--panel);transform:translateY(-1px)}
+input,select{transition:border-color .16s,box-shadow .16s}
+input:focus,select:focus{border-color:var(--focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--focus) 18%,transparent)}
+.btn{box-shadow:0 2px 5px rgba(18,38,58,.14);transition:transform .16s,box-shadow .16s,filter .16s}
+.btn:not([disabled]):hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 5px 12px rgba(18,38,58,.2)}
+.btn.ghost{box-shadow:none}
+.btn.ghost:hover{background:var(--bg);filter:none;box-shadow:none}
+.slip{box-shadow:0 8px 24px rgba(22,32,43,.055)}
+.stat b{letter-spacing:-.035em}
+.notice{box-shadow:0 4px 14px rgba(22,32,43,.05)}
+@media (max-width:860px){
+  .top .wrap{align-items:flex-start}
+  nav[role="tablist"]{width:100%;overflow-x:auto;align-self:auto}
+  nav button{white-space:nowrap}
+}
+@media (max-width:520px){
+  .wrap{padding-left:14px;padding-right:14px}
+  .top .wrap{padding-top:18px}
+  .top h1{font-size:1.35rem}
+  main{padding-top:18px}
+  .card{padding:18px}
+  .actions{align-items:stretch}
+  .actions .btn{flex:1}
+}
+  .inventory-card{margin-top:24px}
+  .inventory-card h2{margin-bottom:4px}
+  .inventory-card .hint{margin-bottom:14px}
+  .inventory-card .tablebox{box-shadow:0 8px 24px rgba(22,32,43,.045)}
+  .inventory-card table{min-width:720px}
+  .inventory-card th{background:#397451;color:#fff}
+  .low-stock{color:var(--bad-ink);font-weight:700}
+  .stock-note{margin:12px 0 0;color:var(--muted);font-size:.88rem}
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Control de despachos</h1>
+      <p>Distribuidora La Quinta S.A.S.</p>
+    </div>
+    <nav role="tablist" aria-label="Secciones">
+      <button role="tab" id="tab-registro" aria-selected="true" aria-controls="view-registro">Registrar despacho</button>
+      <button role="tab" id="tab-historial" aria-selected="false" aria-controls="view-historial">Historial de movimientos</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="view" id="view-registro" role="tabpanel" aria-labelledby="tab-registro">
+    <div class="notice" id="aviso-config" hidden></div>
+    <div class="grid">
+      <div class="card">
+        <h2>Nuevo despacho</h2>
+        <p class="hint">El sistema consulta el inventario y decide si el despacho procede.</p>
+
+        <form id="form" novalidate>
+          <div class="f">
+            <label for="solicitante">Solicitante</label>
+            <input id="solicitante" name="solicitante" autocomplete="name" required>
+            <div class="err" id="err-solicitante"></div>
+          </div>
+          <div class="f">
+            <label for="correo">Correo</label>
+            <input id="correo" name="correo" type="email" autocomplete="email" required>
+            <div class="err" id="err-correo"></div>
+          </div>
+          <div class="f">
+            <label for="codigo_producto">Producto</label>
+            <select id="codigo_producto" name="codigo_producto" required>
+              <option value="" data-cantidad-prueba="" disabled selected>Seleccione un producto</option>
+            </select>
+            <div class="err" id="err-codigo_producto"></div>
+          </div>
+          <div class="f">
+            <label for="cantidad">Cantidad</label>
+            <input id="cantidad" name="cantidad" type="number" min="1" step="1" inputmode="numeric" required>
+            <div class="err" id="err-cantidad"></div>
+          </div>
+          <div class="f">
+            <label for="destino">Destino</label>
+            <input id="destino" name="destino" placeholder="Restaurante, cafetería o sede" required>
+            <div class="err" id="err-destino"></div>
+          </div>
+          <div class="f">
+            <label for="motivo">Motivo</label>
+            <select id="motivo" name="motivo" required>
+              <option value="despacho">Despacho</option>
+              <option value="traslado entre sedes">Traslado entre sedes</option>
+              <option value="avería">Avería</option>
+            </select>
+            <div class="err" id="err-motivo"></div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="btn-enviar" type="submit">Registrar despacho</button>
+            <button class="btn ghost" id="btn-limpiar" type="button">Limpiar</button>
+            <span class="status-line" id="estado-envio" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+
+      <aside>
+        <div class="slip" id="slip" aria-live="polite">
+          <p class="empty">Aquí aparece la respuesta del proceso: aprobado, con alerta o rechazado.</p>
+        </div>
+      </aside>
+    </div>
+    <section class="card inventory-card" aria-labelledby="inventario-titulo">
+      <h2 id="inventario-titulo">Inventario de referencia</h2>
+      <p class="hint">Existencias y mínimos iniciales del parcial. Los productos por debajo del mínimo se resaltan.</p>
+      <div class="tablebox">
+        <table>
+          <thead>
+            <tr><th>Producto</th><th>Unidad</th><th class="r">Existencias</th><th class="r">Mínimo</th><th class="r">Costo unitario</th></tr>
+          </thead>
+          <tbody id="tbody-inventario"></tbody>
+        </table>
+      </div>
+      <p class="stock-note">El nivel bajo de arroz blanco y pollo congelado es parte de los casos del parcial; no significa que el inventario deba ocultarlos.</p>
+    </section>
+  </section>
+
+  <section class="view" id="view-historial" role="tabpanel" aria-labelledby="tab-historial" hidden>
+    <div class="notice" id="aviso-historial" hidden></div>
+    <div class="stats">
+      <div class="stat"><b class="num" id="st-total">0</b><span>movimientos registrados</span></div>
+      <div class="stat"><b class="num" id="st-alerta">0</b><span>aprobados con alerta</span></div>
+      <div class="stat"><b class="num" id="st-valor">$0</b><span>valor despachado</span></div>
+    </div>
+    <div class="tools">
+      <div class="f">
+        <label for="f-buscar">Buscar</label>
+        <input id="f-buscar" type="search" placeholder="Producto, destino o solicitante">
+      </div>
+      <div class="f">
+        <label for="f-estado">Resultado</label>
+        <select id="f-estado">
+          <option value="">Todos</option>
+          <option value="aprobado">Aprobado</option>
+          <option value="alerta">Aprobado con alerta</option>
+        </select>
+      </div>
+      <div class="f" style="flex:0 0 auto;min-width:0">
+        <button class="btn" id="btn-recargar" type="button">Actualizar</button>
+      </div>
+    </div>
+    <div class="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha y hora</th><th>Producto</th>
+            <th class="r">Cantidad</th><th>Destino</th><th>Motivo</th><th>Solicitante</th>
+            <th class="r">Saldo anterior</th><th class="r">Saldo nuevo</th><th class="r">Valor</th><th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ============ CONFIGURACIÓN: complete estos valores ============ */
+const CONFIG = {
+  WEBHOOK_URL: "https://hook.us2.make.com/rtig2wnjyh4fxsqz9zhbf4p4l8rr5n7p",
+  AIRTABLE: {
+    TOKEN: "",                       // token personal de Airtable, solo lectura y solo para esta base
+    BASE_ID: "",                     // empieza por "app..."
+    TABLA_MOVIMIENTOS: "Movimientos",
+    TABLA_INVENTARIO: "Inventario"
+  },
+  TIMEOUT_MS: 40000
+};
+
+/* Campos de las tablas de Airtable (cámbielos si sus columnas se llaman distinto) */
+const CAMPOS = {
+  codigo: "codigo_producto", producto: "producto", cantidad: "cantidad", destino: "destino",
+  motivo: "motivo", solicitante: "solicitante", saldoAnt: "saldo_anterior", saldoNuevo: "saldo_posterior",
+  valor: "valor_total", estado: "estado"
+};
+/* =============================================================== */
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cop = new Intl.NumberFormat("es-CO", {style:"currency", currency:"COP", maximumFractionDigits:0});
+const webhookListo = () => /^https?:\/\//.test(CONFIG.WEBHOOK_URL);
+const airtableListo = () => CONFIG.AIRTABLE.TOKEN && CONFIG.AIRTABLE.BASE_ID;
+
+/* ---------- Pestañas ---------- */
+const tabs = {registro: $("tab-registro"), historial: $("tab-historial")};
+function mostrar(vista){
+  for (const [k, btn] of Object.entries(tabs)){
+    const activa = k === vista;
+    btn.setAttribute("aria-selected", activa);
+    $("view-" + k).hidden = !activa;
+  }
+  if (vista === "historial") cargarHistorial();
+}
+tabs.registro.addEventListener("click", () => mostrar("registro"));
+tabs.historial.addEventListener("click", () => mostrar("historial"));
+
+/* ---------- Casos de prueba ---------- */
+const INVENTARIO_BASE = [
+  {codigo:"INS-0101", producto:"Harina de trigo x 25 kg", unidad:"bulto", existencias:48, minimo:15, costo:92000},
+  {codigo:"INS-0102", producto:"Azúcar refinada x 50 kg", unidad:"bulto", existencias:12, minimo:10, costo:148000},
+  {codigo:"INS-0203", producto:"Aceite vegetal x 20 L", unidad:"caja", existencias:30, minimo:12, costo:186000},
+  {codigo:"INS-0204", producto:"Arroz blanco x 25 kg", unidad:"bulto", existencias:7, minimo:20, costo:112000},
+  {codigo:"INS-0305", producto:"Servilletas x 1000 u", unidad:"paca", existencias:120, minimo:40, costo:38000},
+  {codigo:"INS-0306", producto:"Vasos desechables 7 oz x 2500", unidad:"caja", existencias:25, minimo:15, costo:95000},
+  {codigo:"INS-0407", producto:"Pollo congelado x 10 kg", unidad:"caja", existencias:3, minimo:8, costo:215000},
+  {codigo:"INS-0408", producto:"Queso mozzarella x 5 kg", unidad:"bloque", existencias:60, minimo:20, costo:94000}
+];
+function cargarInventarioBase(){
+  $("codigo_producto").innerHTML =
+    "<option value='' data-cantidad-prueba='' disabled selected>Seleccione un producto</option>" +
+    INVENTARIO_BASE.map((p) => {
+      const cantidadesPrueba = {"INS-0101":10,"INS-0102":5,"INS-0407":5,"INS-0204":7};
+      const cantidad = cantidadesPrueba[p.codigo];
+      return "<option value='" + esc(p.codigo) + "'" +
+        (cantidad ? " data-cantidad-prueba='" + cantidad + "'" : "") + ">" +
+        esc(p.producto) + "</option>";
+    }).join("") +
+    "<option value='INS-9999' data-cantidad-prueba='3'>Producto no registrado</option>";
+  $("tbody-inventario").innerHTML = INVENTARIO_BASE.map((p) => {
+    const bajoMinimo = p.existencias < p.minimo;
+    return "<tr>" +
+      "<td" + (bajoMinimo ? " class='low-stock'" : "") + ">" + esc(p.producto) + "</td>" +
+      "<td>" + esc(p.unidad) + "</td>" +
+      "<td class='r num" + (bajoMinimo ? " low-stock" : "") + "'>" + esc(p.existencias) + "</td>" +
+      "<td class='r num" + (bajoMinimo ? " low-stock" : "") + "'>" + esc(p.minimo) + "</td>" +
+      "<td class='r num'>" + esc(cop.format(p.costo)) + "</td>" +
+    "</tr>";
+  }).join("");
+}
+ $("codigo_producto").addEventListener("change", () => {
+  const cantidadPrueba = $("codigo_producto").selectedOptions[0].dataset.cantidadPrueba;
+  if (cantidadPrueba) $("cantidad").value = cantidadPrueba;
+});
+function nombreProducto(codigo){
+  const producto = INVENTARIO_BASE.find((p) => p.codigo === String(codigo || "").toUpperCase());
+  return producto ? producto.producto : "Producto no registrado";
+}
+
+/* ---------- Validación ---------- */
+function limpiarErrores(){
+  document.querySelectorAll(".err").forEach((e) => e.textContent = "");
+  document.querySelectorAll("#form input, #form select").forEach((i) => i.removeAttribute("aria-invalid"));
+}
+function error(campo, texto){
+  $("err-" + campo).textContent = texto;
+  $(campo).setAttribute("aria-invalid", "true");
+}
+function validar(d){
+  limpiarErrores();
+  let primero = null;
+  const marca = (c, t) => { error(c, t); primero = primero || c; };
+  if (!d.solicitante) marca("solicitante", "Escriba el nombre de quien solicita.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.correo)) marca("correo", "Escriba un correo válido, por ejemplo nombre@dominio.co.");
+  if (!d.codigo_producto) marca("codigo_producto", "Seleccione un producto.");
+  if (!Number.isInteger(d.cantidad) || d.cantidad < 1) marca("cantidad", "La cantidad debe ser un número entero mayor que 0.");
+  if (!d.destino) marca("destino", "Indique hacia dónde sale la mercancía.");
+  if (primero) $(primero).focus();
+  return !primero;
+}
+
+/* ---------- Estado → tipo visual ---------- */
+function tipoEstado(estado){
+  const e = String(estado || "").toUpperCase();
+  if (e.includes("ALERTA")) return "alerta";
+  if (e.includes("RECHAZ")) return "rechazado";
+  if (e.includes("INEXIST") || e.includes("RESPALDO")) return "respaldo";
+  if (e.includes("APROB")) return "aprobado";
+  return "desconocido";
+}
+const TITULOS = {
+  aprobado:"Despacho aprobado",
+  alerta:"Aprobado con alerta",
+  rechazado:"Despacho rechazado",
+  respaldo:"Producto no encontrado",
+  desconocido:"Respuesta sin interpretar"
+};
+const MENSAJES = {
+  aprobado:"Se descontó del inventario y quedó registrado el movimiento.",
+  alerta:"Se despachó, pero el saldo quedó bajo el mínimo. Compras fue avisado.",
+  rechazado:"No hay existencias suficientes. No se descontó nada ni se registró movimiento.",
+  respaldo:"El código no existe en el inventario. Se dejó aviso del incidente.",
+  desconocido:"El escenario respondió, pero no con un estado conocido."
+};
+
+/* ---------- Mostrar respuesta ---------- */
+function pintarCarga(){
+  const s = $("slip");
+  s.className = "slip loading";
+  s.innerHTML = "<h2>Consultando inventario…</h2><p class='msg'>El escenario de Make está calculando el saldo.</p>";
+}
+function pintarRespuesta(datos, enviado){
+  const tipo = tipoEstado(datos && datos.estado);
+  const s = $("slip");
+  s.className = "slip " + tipo;
+  const saldo = datos && datos.saldo !== undefined && datos.saldo !== "" ? datos.saldo : null;
+  const hora = new Date().toLocaleTimeString("es-CO", {timeZone:"America/Bogota"});
+  s.innerHTML =
+    "<h2>" + esc(TITULOS[tipo]) + "</h2>" +
+    "<p class='msg'>" + esc((datos && datos.mensaje) || MENSAJES[tipo]) + "</p>" +
+    "<dl>" +
+      "<dt>Producto</dt><dd>" + esc(nombreProducto(enviado.codigo_producto)) + "</dd>" +
+      "<dt>Cantidad pedida</dt><dd class='num'>" + esc(enviado.cantidad) + "</dd>" +
+      (saldo !== null ? "<dt>Saldo resultante</dt><dd class='num'>" + esc(saldo) + "</dd>" : "") +
+      "<dt>Estado devuelto</dt><dd>" + esc((datos && datos.estado) || "sin estado") + "</dd>" +
+      "<dt>Hora de respuesta</dt><dd class='num'>" + esc(hora) + "</dd>" +
+    "</dl>";
+}
+function pintarFallo(titulo, detalle){
+  const s = $("slip");
+  s.className = "slip rechazado";
+  s.innerHTML = "<h2>" + esc(titulo) + "</h2><p class='msg'>" + esc(detalle) + "</p>";
+}
+
+/* ---------- Envío al webhook ---------- */
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const datos = {
+    solicitante: $("solicitante").value.trim(),
+    correo: $("correo").value.trim(),
+    codigo_producto: $("codigo_producto").value.trim().toUpperCase(),
+    cantidad: Number($("cantidad").value),
+    destino: $("destino").value.trim(),
+    motivo: $("motivo").value,
+    fecha_hora_solicitud: new Date().toISOString()
+  };
+  if ($("cantidad").value === "") datos.cantidad = NaN;
+  if (!validar(datos)) return;
+  if (!webhookListo()){
+    pintarFallo("Falta la URL del webhook", "Abra index.html y pegue la URL de su webhook de Make en CONFIG.WEBHOOK_URL.");
+    return;
+  }
+  const btn = $("btn-enviar");
+  btn.disabled = true;
+  $("estado-envio").textContent = "Enviando…";
+  pintarCarga();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_MS);
+  try{
+    const r = await fetch(CONFIG.WEBHOOK_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(datos),
+      signal: ctrl.signal
+    });
+    const texto = await r.text();
+    let json = null;
+    try{ json = JSON.parse(texto); }catch(_){}
+    if (json){
+      pintarRespuesta(json, datos);
+    } else if (r.ok){
+      pintarFallo("El escenario no devolvió JSON",
+        "Revise el módulo Webhook response: el cuerpo debe ser JSON, por ejemplo {\"estado\":\"APROBADO\"}. Respuesta recibida: " + texto.slice(0, 120));
+    } else {
+      pintarFallo("El escenario respondió con error " + r.status, texto.slice(0, 200) || "Sin detalle.");
+    }
+    $("estado-envio").textContent = "";
+    if (airtableListo() && !$("view-historial").hidden) cargarHistorial();
+  }catch(e){
+    const abort = e.name === "AbortError";
+    pintarFallo(abort ? "El escenario tardó demasiado" : "No se pudo contactar el webhook",
+      abort ? "Pasaron " + (CONFIG.TIMEOUT_MS/1000) + " s sin respuesta. Revise que el escenario esté activo y que cada ruta termine en un Webhook response."
+            : "Revise la URL, que el escenario esté activo (o en Run once) y que el Webhook response incluya el encabezado Access-Control-Allow-Origin: *.");
+    $("estado-envio").textContent = "";
+  }finally{
+    clearTimeout(timer);
+    btn.disabled = false;
+  }
+});
+$("btn-limpiar").addEventListener("click", () => {
+  $("form").reset();
+  limpiarErrores();
+  $("slip").className = "slip";
+  $("slip").innerHTML = "<p class='empty'>Aquí aparece la respuesta del proceso: aprobado, con alerta o rechazado.</p>";
+});
+
+/* ---------- Airtable (lectura) ---------- */
+async function leerTabla(tabla){
+  const {TOKEN, BASE_ID} = CONFIG.AIRTABLE;
+  let filas = [], offset = "", paginas = 0;
+  do{
+    const url = "https://api.airtable.com/v0/" + encodeURIComponent(BASE_ID) + "/" + encodeURIComponent(tabla) +
+                "?pageSize=100" + (offset ? "&offset=" + encodeURIComponent(offset) : "");
+    const r = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
+    if (!r.ok){
+      const t = await r.text();
+      throw new Error("Airtable respondió " + r.status + " al leer " + tabla + ". " + t.slice(0, 140));
+    }
+    const j = await r.json();
+    filas = filas.concat(j.records || []);
+    offset = j.offset || "";
+    paginas++;
+  } while (offset && paginas < 10);
+  return filas;
+}
+
+/* ---------- Historial ---------- */
+let movimientos = [];
+function aviso(id, html){
+  const el = $(id);
+  el.hidden = !html;
+  el.innerHTML = html || "";
+}
+async function cargarHistorial(){
+  if (!airtableListo()){
+    aviso("aviso-historial", "Para ver el historial, complete <code>CONFIG.AIRTABLE.TOKEN</code> y <code>CONFIG.AIRTABLE.BASE_ID</code> en index.html.");
+    movimientos = []; pintarTabla(); return;
+  }
+  aviso("aviso-historial", "");
+  $("btn-recargar").disabled = true;
+  $("tbody").innerHTML = "<tr><td colspan='10' class='empty-row'>Cargando movimientos…</td></tr>";
+  try{
+    const filas = await leerTabla(CONFIG.AIRTABLE.TABLA_MOVIMIENTOS);
+    movimientos = filas.sort((a, b) => new Date(b.createdTime) - new Date(a.createdTime));
+    pintarTabla();
+  }catch(e){
+    movimientos = []; pintarTabla();
+    aviso("aviso-historial", esc(e.message));
+  }finally{
+    $("btn-recargar").disabled = false;
+  }
+}
+function pintarTabla(){
+  const q = $("f-buscar").value.trim().toLowerCase();
+  const est = $("f-estado").value;
+  const f = CAMPOS;
+  const visibles = movimientos.filter((m) => {
+    const x = m.fields;
+    if (est && tipoEstado(x[f.estado]) !== est) return false;
+    if (!q) return true;
+    return [x[f.producto] || nombreProducto(x[f.codigo]), x[f.destino], x[f.solicitante]].some((v) => String(v ?? "").toLowerCase().includes(q));
+  });
+  $("st-total").textContent = movimientos.length;
+  $("st-alerta").textContent = movimientos.filter((m) => tipoEstado(m.fields[f.estado]) === "alerta").length;
+  $("st-valor").textContent = cop.format(movimientos.reduce((s, m) => s + (Number(m.fields[f.valor]) || 0), 0));
+  if (!visibles.length){
+    $("tbody").innerHTML = "<tr><td colspan='10' class='empty-row'>" +
+      (movimientos.length ? "Ningún movimiento coincide con el filtro." : "Aún no hay movimientos. Registre un despacho para ver el primero aquí.") + "</td></tr>";
+    return;
+  }
+  $("tbody").innerHTML = visibles.map((m) => {
+    const x = m.fields, tipo = tipoEstado(x[f.estado]);
+    const fecha = new Date(m.createdTime).toLocaleString("es-CO", {timeZone:"America/Bogota", dateStyle:"short", timeStyle:"medium"});
+    const val = x[f.valor] !== undefined ? cop.format(Number(x[f.valor]) || 0) : "";
+    return "<tr>" +
+      "<td class='num'>" + esc(fecha) + "</td>" +
+      "<td>" + esc(x[f.producto] || nombreProducto(x[f.codigo])) + "</td>" +
+      "<td class='r num'>" + esc(x[f.cantidad]) + "</td>" +
+      "<td>" + esc(x[f.destino]) + "</td>" +
+      "<td>" + esc(x[f.motivo]) + "</td>" +
+      "<td>" + esc(x[f.solicitante]) + "</td>" +
+      "<td class='r num'>" + esc(x[f.saldoAnt]) + "</td>" +
+      "<td class='r num'>" + esc(x[f.saldoNuevo]) + "</td>" +
+      "<td class='r num'>" + esc(val) + "</td>" +
+      "<td><span class='badge " + tipo + "'>" + esc(TITULOS[tipo] === "Despacho aprobado" ? "Aprobado" : TITULOS[tipo]) + "</span></td>" +
+    "</tr>";
+  }).join("");
+}
+$("f-buscar").addEventListener("input", pintarTabla);
+$("f-estado").addEventListener("change", pintarTabla);
+$("btn-recargar").addEventListener("click", cargarHistorial);
+
+/* ---------- Arranque ---------- */
+cargarInventarioBase();
+if (!webhookListo()){
+  aviso("aviso-config", "Falta pegar la URL del webhook de Make en <code>CONFIG.WEBHOOK_URL</code> (al inicio del script en index.html).");
+}
+</script>
+</body>
+</html>
